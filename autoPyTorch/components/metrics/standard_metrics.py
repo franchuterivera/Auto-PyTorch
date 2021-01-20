@@ -1,3 +1,4 @@
+from sklearn.metrics import log_loss
 import sklearn.metrics as metrics
 import numpy as np
 
@@ -9,17 +10,23 @@ def auc_metric(y_true, y_pred):
     return (2 * metrics.roc_auc_score(y_true, y_pred) - 1)
 
 def cross_entropy(y_true, y_pred):
-    if y_true==1:
-        return -np.log(y_pred)
-    else:
-        return -np.log(1-y_pred)
+
+    # This implementation seems wrong.
+    # for instance, y_true is an array
+
+    #if y_true==1:
+    #    return -np.log(y_pred)
+    #else:
+    #    return -np.log(1-y_pred)
+    return float(log_loss(y_true, y_pred))
+
 
 def top1(y_pred, y_true):
     return topN(y_pred, y_true, 1)
 
 def top3(y_pred, y_true):
     return topN(y_pred, y_true, 3)
-    
+
 def top5(y_pred, y_true):
     if y_pred.shape[1] < 5:
         return -1
