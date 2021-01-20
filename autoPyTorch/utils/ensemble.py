@@ -13,10 +13,14 @@ from autoPyTorch.components.ensembles.ensemble_selection import EnsembleSelectio
 
 def build_ensemble(result, optimize_metric,
         ensemble_size, all_predictions, labels, model_identifiers,
-        only_consider_n_best=0, sorted_initialization_n_best=0):
+        only_consider_n_best=0, sorted_initialization_n_best=0, random_state=0):
+
+    if isinstance(random_seed, int):
+        random_state = np.random.RandomState(random_state)
     id2config = result.get_id2config_mapping()
     ensemble_selection = EnsembleSelection(ensemble_size, optimize_metric,
-        only_consider_n_best=only_consider_n_best, sorted_initialization_n_best=sorted_initialization_n_best)
+        only_consider_n_best=only_consider_n_best, sorted_initialization_n_best=sorted_initialization_n_best,
+                                           random_state=random_state)
 
     # fit ensemble
     ensemble_selection.fit(np.array(all_predictions), labels, model_identifiers)
@@ -60,11 +64,11 @@ class test_predictions_for_ensemble():
         from autoPyTorch.core.api import AutoNet
         self.predict = AutoNet.predict
 
-    
+
     def __call__(self, model, epochs):
         if self.Y_test is None or self.X_test is None:
             return float("nan")
-        
+
         return self.predict(self.autonet, self.X_test, return_probabilities=True)[1], self.Y_test
 
 def combine_predictions(data, pipeline_kwargs, X, Y):
@@ -81,7 +85,7 @@ def combine_predictions(data, pipeline_kwargs, X, Y):
     argsort = np.argsort(all_indices)
     sorted_predictions = all_predictions[argsort]
     sorted_indices = all_indices[argsort]
-    
+
     unique = uuid.uuid4()
     tempfile.gettempdir()
     with open(os.path.join(tempfile.gettempdir(), "autonet_ensemble_predictions_%s.npy" % unique), "wb") as f:
@@ -98,7 +102,7 @@ def combine_test_predictions(data, pipeline_kwargs, X, Y):
     assert len(predictions) == len(labels)
     if len(predictions) == 0:
         return None
-    
+
     unique = uuid.uuid4()
     tempfile.gettempdir()
     with open(os.path.join(tempfile.gettempdir(), "autonet_ensemble_predictions_%s.npy" % unique), "wb") as f:
@@ -165,7 +169,7 @@ class ensemble_logger(object):
         self.overwrite = overwrite
         self.labels_written = False
         self.test_labels_written = False
-        
+
         self.file_name = os.path.join(directory, 'predictions_for_ensemble.npy')
         self.test_file_name = os.path.join(directory, 'test_predictions_for_ensemble.npy')
 
@@ -178,7 +182,7 @@ class ensemble_logger(object):
                 raise FileExistsError('The file %s already exists.'%self.file_name)
         except:
             raise
-        
+
         try:
             with open(self.test_file_name, 'x') as fh: pass
         except FileExistsError:
@@ -191,7 +195,7 @@ class ensemble_logger(object):
 
     def new_config(self, *args, **kwargs):
         pass
-    
+
     async def save_remote_data(self, host, port, name, unique, f):
         remote_reader, remote_writer = await asyncio.open_connection(host, port)
         remote_writer.write(("%s_%s" % (name, unique)).encode())

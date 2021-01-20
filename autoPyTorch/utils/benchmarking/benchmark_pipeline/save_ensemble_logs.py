@@ -23,7 +23,7 @@ class SaveEnsembleLogs(PipelineNode):
         save_ensemble_logs(pipeline_config, autonet, result_dir)
         save_ensemble_logs(pipeline_config, autonet, result_dir, ensemble_size=1, log_filename="test_result.json")
         return dict()
- 
+
     def get_pipeline_config_options(self):
         options = [
             ConfigOption('num_ensemble_evaluations', default=100, type=int)
@@ -49,7 +49,7 @@ def save_ensemble_logs(pipeline_config, autonet, result_dir, ensemble_size=None,
     test_data_available = False
     try:
         test_predictions, test_labels, test_model_identifiers, test_timestamps = read_ensemble_prediction_file(filename=test_filename, y_transform=y_transform)
-        test_predictions = [np.mean(p, axis=0) for p in test_predictions]     
+        test_predictions = [np.mean(p, axis=0) for p in test_predictions]
         assert test_model_identifiers == model_identifiers and test_timestamps == timestamps, "Different model identifiers or timestamps in test file"
         predictions, model_identifiers, timestamps, test_predictions = \
             filter_nan_predictions(predictions, model_identifiers, timestamps, test_predictions)
@@ -71,7 +71,7 @@ def save_ensemble_logs(pipeline_config, autonet, result_dir, ensemble_size=None,
     for subset in subset_indices:
         if len(subset) == 0:
             continue
-        
+
         finished = max(timestamps[s]["finished"] for s in subset)
         if finished == last_finished:
             continue
@@ -81,11 +81,14 @@ def save_ensemble_logs(pipeline_config, autonet, result_dir, ensemble_size=None,
 
         # build an ensemble with current subset and size
         ensemble_start_time = time.time()
-        ensemble, _ = build_ensemble(result=result,
+        ensemble, _ = build_ensemble(
+            result=result,
             optimize_metric=optimize_metric, ensemble_size=ensemble_size or autonet_config["ensemble_size"],
             all_predictions=subset_predictions, labels=labels, model_identifiers=subset_model_identifiers,
             only_consider_n_best=autonet_config["ensemble_only_consider_n_best"],
-            sorted_initialization_n_best=autonet_config["ensemble_sorted_initialization_n_best"])
+            sorted_initialization_n_best=autonet_config["ensemble_sorted_initialization_n_best"],
+            random_state=pipeline_config['random_seed'],
+        )
 
         # get the ensemble predictions
         ensemble_prediction = ensemble.predict(subset_predictions)

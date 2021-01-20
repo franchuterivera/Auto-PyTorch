@@ -8,16 +8,17 @@ from autoPyTorch.components.ensembles.abstract_ensemble import AbstractEnsemble
 
 class EnsembleSelection(AbstractEnsemble):
     """Ensemble Selection algorithm extracted from auto-sklearn"""
-    
+
     def __init__(self, ensemble_size, metric,
                  sorted_initialization_n_best=0, only_consider_n_best=0,
-                 bagging=False, mode='fast'):
+                 bagging=False, mode='fast', random_state=0):
         self.ensemble_size = ensemble_size
         self.metric = metric.get_loss_value
         self.sorted_initialization_n_best = sorted_initialization_n_best
         self.only_consider_n_best = only_consider_n_best
         self.bagging = bagging
         self.mode = mode
+        self.random_state = random_state
 
     def fit(self, predictions, labels, identifiers):
         self.ensemble_size = int(self.ensemble_size)
@@ -60,7 +61,7 @@ class EnsembleSelection(AbstractEnsemble):
                 ensemble_performance = self.metric(ensemble_, labels)
                 trajectory.append(ensemble_performance)
             ensemble_size -= self.sorted_initialization_n_best
-        
+
         only_consider_indices = None
         if self.only_consider_n_best > 0:
             only_consider_indices = set(self._sorted_initialization(predictions, labels, self.only_consider_n_best))
@@ -85,7 +86,7 @@ class EnsembleSelection(AbstractEnsemble):
                                              (1. / float(s + 1)) * pred
                 scores[j] = self.metric(fant_ensemble_prediction, labels)
             all_best = np.argwhere(scores == np.nanmin(scores)).flatten()
-            best = np.random.choice(all_best)
+            best = self.random_state.choice(all_best)
             ensemble.append(predictions[best])
             trajectory.append(scores[best])
             order.append(best)
@@ -117,7 +118,7 @@ class EnsembleSelection(AbstractEnsemble):
                 ensemble_performance = self.metric(ensemble_, labels)
                 trajectory.append(ensemble_performance)
             ensemble_size -= self.sorted_initialization_n_best
-        
+
         only_consider_indices = None
         if self.only_consider_n_best > 0:
             only_consider_indices = set(self._sorted_initialization(predictions, labels, self.only_consider_n_best))

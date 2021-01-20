@@ -76,7 +76,7 @@ class SavePredictionsForEnsemble(PipelineNode):
                 return {"loss": loss, "info": info, "predictions_for_ensemble": combinator, "baseline_predictions_for_ensemble": baseline_combinator}
             else:
                 return {"loss": loss, "info": info, "predictions_for_ensemble": combinator}
-        
+
         #logging.info("Test: ", type(info["test_predictions_for_ensemble"]), len(info["test_predictions_for_ensemble"]))
         #logging.info("Test: ", type(info["test_predictions_for_ensemble"][0]), type(info["test_predictions_for_ensemble"][1]))
         #logging.info("Test: ", info["test_predictions_for_ensemble"][0].shape, info["test_predictions_for_ensemble"][1].shape)
@@ -108,7 +108,7 @@ class SavePredictionsForEnsemble(PipelineNode):
 
     def predict(self, Y):
         return {"Y": Y}
-    
+
     def get_pipeline_config_options(self):
         options = [
             ConfigOption("ensemble_server_credentials", default=None)
@@ -121,7 +121,7 @@ class BuildEnsemble(PipelineNode):
     def fit(self, pipeline_config, optimized_hyperparameter_config, budget, loss, info, refit=None):
         if refit or pipeline_config["ensemble_size"] == 0 or pipeline_config["task_id"] not in [-1, 1]:
             return {"optimized_hyperparameter_config": optimized_hyperparameter_config, "budget": budget}
-        
+
         filename = os.path.join(pipeline_config["result_logger_dir"], 'predictions_for_ensemble.npy')
         optimize_metric = self.pipeline[MetricSelector.get_name()].metrics[pipeline_config["optimize_metric"]]
         y_transform = self.pipeline[OneHotEncoding.get_name()].complete_y_tranformation
@@ -132,7 +132,8 @@ class BuildEnsemble(PipelineNode):
             optimize_metric=optimize_metric, ensemble_size=pipeline_config["ensemble_size"],
             all_predictions=all_predictions, labels=labels, model_identifiers=model_identifiers,
             only_consider_n_best=pipeline_config["ensemble_only_consider_n_best"],
-            sorted_initialization_n_best=pipeline_config["ensemble_sorted_initialization_n_best"])
+            sorted_initialization_n_best=pipeline_config["ensemble_sorted_initialization_n_best"],
+            random_state=pipeline_config['random_seed'])
 
         return {"optimized_hyperparameter_config": optimized_hyperparameter_config, "budget": budget,
             "ensemble": ensemble_selection,
@@ -140,10 +141,10 @@ class BuildEnsemble(PipelineNode):
             "loss": loss,
             "info": info
             }
-    
+
     def predict(self, Y):
         return {"Y": Y}
-    
+
     def get_pipeline_config_options(self):
         options = [
             ConfigOption("ensemble_size", default=50, type=int, info="Build a ensemble of well performing autonet configurations. 0 to disable."),

@@ -7,12 +7,12 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
 from autoPyTorch import AutoNetClassification
 from autoPyTorch.data_management.data_manager import DataManager
 
-# Note: You can write your own datamanager! Call fit with respective train, valid data (numpy matrices) 
+# Note: You can write your own datamanager! Call fit with respective train, valid data (numpy matrices)
 dm = DataManager()
 dm.generate_classification(num_classes=3, num_features=21, num_samples=1500)
 
 # Note: every parameter has a default value, you do not have to specify anything. The given parameter allow a fast test.
-autonet = AutoNetClassification("tiny_cs", budget_type='epochs', min_budget=1, max_budget=9, num_iterations=1, log_level='debug', use_pynisher=False)
+autonet = AutoNetClassification("tiny_cs", budget_type='epochs', min_budget=1, max_budget=9, num_iterations=1, log_level='debug', use_pynisher=False, random_seed=13)
 
 res = autonet.fit(X_train=dm.X, Y_train=dm.Y, cross_validator="k_fold", cross_validator_args={"n_splits": 3})
 

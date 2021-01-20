@@ -3,6 +3,10 @@ __version__ = "0.0.1"
 __license__ = "BSD"
 
 
+import random
+
+import numpy as np
+
 from autoPyTorch.pipeline.base.pipeline_node import PipelineNode
 from autoPyTorch.components.networks.initialization import BaseInitialization, SimpleInitializer
 
@@ -34,18 +38,24 @@ class InitializationSelector(PipelineNode):
         initializer_type = self.initializers[pipeline_config["initializer"]]
         initializer_config = ConfigWrapper("initializer", config)
 
-        torch.manual_seed(pipeline_config["random_seed"])
+        # Fix cpu based reproducibility. For cuda, different options are needed
+        # but this affects performance
+        seed = pipeline_config["random_seed"]
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+
         initializer = initializer_type(initializer_config)
         method = method_type(initializer, method_config)
         method.apply(network)
-        
+
         return dict()
-    
+
     def add_initialization_method(self, name, initialization_method):
         if not issubclass(initialization_method, BaseInitialization):
             raise ValueError("initialization has to inherit from BaseInitialization")
         self.initialization_methods[name] = initialization_method
-    
+
     def remove_initialization_method(self, name):
         del self.initialization_methods[name]
 
@@ -68,7 +78,7 @@ class InitializationSelector(PipelineNode):
                 continue
             method_cs = method_type.get_hyperparameter_search_space(
                 **self._get_search_space_updates(prefix=method_name))
-            cs.add_configuration_space(prefix=method_name, configuration_space=method_cs, delimiter=ConfigWrapper.delimiter, 
+            cs.add_configuration_space(prefix=method_name, configuration_space=method_cs, delimiter=ConfigWrapper.delimiter,
                                        parent_hyperparameter={'parent': selector, 'value': method_name})
 
         # add hyperparameter of initializer

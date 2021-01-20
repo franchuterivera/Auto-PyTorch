@@ -42,7 +42,7 @@ class ModuleWorkerNoTimeLimit(Worker):
             self.autonet_logger.info("Can not guarantee memory and time limit because module 'resource' is not available")
 
         super().__init__(*args, **kwargs)
-    
+
     def compute(self, config, budget, working_directory, config_id, **kwargs):
 
         start_time = time.time()
@@ -50,7 +50,7 @@ class ModuleWorkerNoTimeLimit(Worker):
         self.autonet_logger.debug("Starting optimization!")
 
         config.update(self.constant_hyperparameter)
-        
+
         self.autonet_logger.debug("Budget " + str(budget) + " config: " + str(config))
 
         if self.guarantee_limits and self.budget_type == 'time':
@@ -102,9 +102,9 @@ class ModuleWorkerNoTimeLimit(Worker):
                     'info': info,
                     'losses': losses
                 }
-    
+
     def optimize_pipeline(self, config, budget, config_id, random_state):
-        
+
         random.setstate(random_state)
 
         if self.permutations is not None:
@@ -113,12 +113,12 @@ class ModuleWorkerNoTimeLimit(Worker):
 
         try:
             self.autonet_logger.info("Fit optimization pipeline")
-            return self.pipeline.fit_pipeline(hyperparameter_config=config, pipeline_config=self.pipeline_config, 
-                                            X_train=self.X_train, Y_train=self.Y_train, X_valid=self.X_valid, Y_valid=self.Y_valid, 
-                                            budget=budget, budget_type=self.budget_type, max_budget=self.max_budget, 
+            return self.pipeline.fit_pipeline(hyperparameter_config=config, pipeline_config=self.pipeline_config,
+                                            X_train=self.X_train, Y_train=self.Y_train, X_valid=self.X_valid, Y_valid=self.Y_valid,
+                                            budget=budget, budget_type=self.budget_type, max_budget=self.max_budget,
                                             config_id=config_id, working_directory=self.working_directory), random.getstate()
         except Exception as e:
-            if 'use_tensorboard_logger' in self.pipeline_config and self.pipeline_config['use_tensorboard_logger']:            
+            if 'use_tensorboard_logger' in self.pipeline_config and self.pipeline_config['use_tensorboard_logger']:
                 import tensorboard_logger as tl
                 tl.log_value('Exceptions/' + str(e), budget, int(time.time()))
             #self.autonet_logger.exception('Exception occurred')
