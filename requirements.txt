@@ -17,3 +17,4 @@ tensorboard_logger
 openml
 lightgbm
 catboost
+ipython

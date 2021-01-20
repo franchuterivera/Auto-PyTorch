@@ -15,7 +15,7 @@ def build_ensemble(result, optimize_metric,
         ensemble_size, all_predictions, labels, model_identifiers,
         only_consider_n_best=0, sorted_initialization_n_best=0, random_state=0):
 
-    if isinstance(random_seed, int):
+    if isinstance(random_state, int):
         random_state = np.random.RandomState(random_state)
     id2config = result.get_id2config_mapping()
     ensemble_selection = EnsembleSelection(ensemble_size, optimize_metric,
