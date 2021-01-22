@@ -1,4 +1,5 @@
 import numpy as np
+import tempfile
 
 import pickle
 import logging
@@ -14,7 +15,7 @@ from autoPyTorch.components.baselines.base_baseline import BaseBaseline
 
 
 def encode_categoricals(X_train, X_val=None, encode_dicts=None):
-    
+
     if encode_dicts is None:
         encode_dicts = []
         got_encoded_dicts = False
@@ -43,7 +44,7 @@ def encode_categoricals(X_train, X_val=None, encode_dicts=None):
 
 
 class LGBBaseline(BaseBaseline):
-    
+
     def __init__(self):
         super(LGBBaseline, self).__init__(name="lgb")
 
@@ -87,7 +88,7 @@ class LGBBaseline(BaseBaseline):
         results["train_balanced_acc"] = metrics.balanced_accuracy_score(y_train, pred_train)
         results["val_acc"] = metrics.accuracy_score(y_val, pred_val)
         results["val_balanced_acc"] = metrics.balanced_accuracy_score(y_val, pred_val)
-        
+
         return results
 
     def refit(self, X_train, y_train):
@@ -96,7 +97,7 @@ class LGBBaseline(BaseBaseline):
         best_iter = int(np.where(self.model.evals_result_['valid_0'][loss_key]==self.model._best_score["valid_0"][loss_key])[0]+1)
         self.config["num_rounds"] = best_iter
         logging.info("==> Refitting with %i iterations" %best_iter)
-        
+
         results = dict()
 
         self.num_classes = len(np.unique(y_train))
@@ -133,20 +134,20 @@ class LGBBaseline(BaseBaseline):
 
         results["test_acc"] = metrics.accuracy_score(y_test, y_pred)
         results["test_balanced_acc"] = metrics.balanced_accuracy_score(y_test, y_pred)
-        
+
         return results
 
     def predict(self, X_test, predict_proba=False):
         X_test = X_test[:, ~self.all_nan]
         X_test = np.nan_to_num(X_test)
         X_test, _, _ = encode_categoricals(X_test, encode_dicts=self.encode_dicts)
-        
+
         if predict_proba:
             y_pred_proba = self.model.predict_proba(X_test)
             if self.num_classes==2:
                 y_pred_proba = y_pred_proba.transpose()[0:len(X_test)]
             return y_pred_proba
-        
+
         y_pred = self.model.predict(X_test)
         if self.num_classes==2:
             y_pred = y_pred.transpose()[0:len(X_test)]
@@ -158,6 +159,7 @@ class CatboostBaseline(BaseBaseline):
 
     def __init__(self):
         super(CatboostBaseline, self).__init__(name="catboost")
+        self.config['train_dir'] = tempfile.gettempdir()
 
     def fit(self, X_train, y_train, X_val, y_val, categoricals=None):
         results = dict()
@@ -202,7 +204,7 @@ class CatboostBaseline(BaseBaseline):
         best_iter = self.model.best_iteration_ + 1 # appearently 0 based
         self.config["iterations"] = best_iter
         logging.info("==> Refitting with %i iterations" %best_iter)
-        
+
         results = dict()
 
         self.all_nan = np.all(np.isnan(X_train), axis=0)
@@ -249,10 +251,10 @@ class CatboostBaseline(BaseBaseline):
 
 
 class RFBaseline(BaseBaseline):
-    
+
     def __init__(self):
         super(RFBaseline, self).__init__(name="random_forest")
-        
+
     def fit(self, X_train, y_train, X_val, y_val):
         results = dict()
 
@@ -272,7 +274,7 @@ class RFBaseline(BaseBaseline):
             self.config["warm_start"] = True
 
         self.model = RandomForestClassifier(**self.config)
-        
+
         self.model.fit(X_train, y_train)
         if self.config["warm_start"]:
             self.model.n_estimators = final_n_estimators
@@ -320,7 +322,7 @@ class RFBaseline(BaseBaseline):
         results["train_acc"] = metrics.accuracy_score(y_train, pred_train)
         results["train_balanced_acc"] = metrics.balanced_accuracy_score(y_train, pred_train)
         return results
-    
+
     def score(self, X_test, y_test):
         results = dict()
 
@@ -328,7 +330,7 @@ class RFBaseline(BaseBaseline):
 
         results["test_acc"] = metrics.accuracy_score(y_test, y_pred)
         results["test_balanced_acc"] = metrics.balanced_accuracy_score(y_test, y_pred)
-        
+
         return results
 
     def predict(self, X_test, predict_proba=False):
@@ -471,7 +473,7 @@ class RotationForestBaseline(BaseBaseline):
 
     def refit(self, X_train, y_train):
         results = dict()
-        
+
         self.all_nan = np.all(np.isnan(X_train), axis=0)
         X_train = X_train[:, ~self.all_nan]
 
@@ -529,7 +531,7 @@ class KNNBaseline(BaseBaseline):
         X_val = np.nan_to_num(X_val)
 
         self.num_classes = len(np.unique(y_train))
-        
+
         self.model = KNeighborsClassifier(**self.config)
         self.model.fit(X_train, y_train)
 
