@@ -1,9 +1,11 @@
 import copy
+import io
 import json
 import logging.handlers
 import math
 import multiprocessing
 import os
+import platform
 import sys
 import tempfile
 import time
@@ -503,7 +505,7 @@ class BaseTask:
             backend=self._backend,
             seed=self.seed,
             metric=self._metric,
-            logger=self._logger,
+            logger_port=self._logger_port,
             cost_for_crash=get_cost_of_crash(self._metric),
             abort_on_first_run_crash=False,
             initial_num_run=num_run,
@@ -572,7 +574,7 @@ class BaseTask:
                 backend=self._backend,
                 seed=self.seed,
                 metric=self._metric,
-                logger=self._logger,
+                logger_port=self._logger_port,
                 cost_for_crash=get_cost_of_crash(self._metric),
                 abort_on_first_run_crash=False,
                 initial_num_run=num_run,
@@ -719,6 +721,9 @@ class BaseTask:
 
         self._backend.save_datamanager(dataset)
 
+        # Print debug information to log
+        self._print_debug_info_to_log()
+
         self._metric = get_metrics(
             names=[optimize_metric], dataset_properties=dataset_properties)[0]
 
@@ -793,7 +798,7 @@ class BaseTask:
                 ensemble_memory_limit=self._memory_limit,
                 random_state=self.seed,
                 precision=precision,
-                logger_port=self._logger_port
+                logger_port=self._logger_port,
             )
             self._stopwatch.stop_task(ensemble_task_name)
 
@@ -1133,3 +1138,35 @@ class BaseTask:
             self
     ):
         pass
+
+    def get_models_with_weights(self) -> List:
+        if self.models_ is None or len(self.models_) == 0 or \
+                self.ensemble_ is None:
+            self._load_models(self.resampling_strategy)
+
+        assert self.ensemble_ is not None
+        return self.ensemble_.get_models_with_weights(self.models_)
+
+    def show_models(self) -> str:
+        models_with_weights = self.get_models_with_weights()
+
+        with io.StringIO() as sio:
+            sio.write("[")
+            for weight, model in models_with_weights:
+                sio.write("Weight:%f:\nPipeline:%s)\n" % (weight, model))
+            sio.write("]")
+
+            return sio.getvalue()
+
+    def _print_debug_info_to_log(self) -> None:
+        """
+        Prints to the log file debug information about the current estimator
+        """
+        assert self._logger is not None
+        self._logger.debug("Starting to print environment information")
+        self._logger.debug('  Python version: %s', sys.version.split('\n'))
+        self._logger.debug('  System: %s', platform.system())
+        self._logger.debug('  Machine: %s', platform.machine())
+        self._logger.debug('  Platform: %s', platform.platform())
+        for key, value in vars(self).items():
+            self._logger.debug(f"\t{key}->{value}")
