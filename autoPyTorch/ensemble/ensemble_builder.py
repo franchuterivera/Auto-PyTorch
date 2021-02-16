@@ -156,6 +156,11 @@ class EnsembleBuilderManager(IncorporateRunResultCallback):
         time_left: float,
     ) -> None:
         self.build_ensemble(smbo.tae_runner.client)
+        # Print the status of the smbo for debug purpusoes
+        print("remove this")
+        smbo.stats.print_stats(debug_out=True)
+        for key, value in smbo.runhistory.data.items():
+            print(f"RH: {key}->{value}")
 
     def build_ensemble(self, dask_client: dask.distributed.Client) -> None:
 
