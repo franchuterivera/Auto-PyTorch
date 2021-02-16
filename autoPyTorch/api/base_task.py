@@ -1144,7 +1144,7 @@ class BaseTask:
     def get_models_with_weights(self) -> List:
         if self.models_ is None or len(self.models_) == 0 or \
                 self.ensemble_ is None:
-            self._load_models(self.resampling_strategy)
+            self._load_models()
 
         assert self.ensemble_ is not None
         return self.ensemble_.get_models_with_weights(self.models_)

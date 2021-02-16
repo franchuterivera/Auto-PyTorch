@@ -111,6 +111,7 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
             ta: typing.Optional[typing.Callable] = None,
             logger_port: int = None,
             all_supported_metrics: bool = True,
+            pynisher_context: str = 'spawn',
             search_space_updates: typing.Optional[HyperparameterSearchSpaceUpdates] = None
     ):
 
@@ -134,6 +135,7 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
         )
 
         self.backend = backend
+        self.pynisher_context = pynisher_context
         self.seed = seed
         self.initial_num_run = initial_num_run
         self.metric = metric
@@ -238,7 +240,8 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
             instance_specific: typing.Optional[str] = None,
     ) -> typing.Tuple[StatusType, float, float, typing.Dict[str, typing.Any]]:
 
-        queue: multiprocessing.queues.Queue = multiprocessing.Queue()
+        context = multiprocessing.get_context(self.pynisher_context)
+        queue: multiprocessing.queues.Queue = context.Queue()
 
         if not (instance_specific is None or instance_specific == '0'):
             raise ValueError(instance_specific)
@@ -260,6 +263,7 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
             wall_time_in_s=int(cutoff) if cutoff is not None else None,
             mem_in_mb=self.memory_limit,
             capture_output=True,
+            context=context,
         )
 
         if isinstance(config, (int, str)):
