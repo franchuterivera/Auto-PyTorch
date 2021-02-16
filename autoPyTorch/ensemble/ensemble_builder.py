@@ -500,6 +500,8 @@ class EnsembleBuilder(object):
             port=self.logger_port,
         )
 
+        self.logger.critical(f"Created a ensemble builder job at {time.ctime()}")
+
         if ensemble_nbest == 1:
             self.logger.debug("Behaviour depends on int/float: %s, %s (ensemble_nbest, type)" %
                               (ensemble_nbest, type(ensemble_nbest)))
@@ -668,6 +670,7 @@ class EnsembleBuilder(object):
                 logger=self.logger,
                 context=context,
             )(self.main)
+            self.logger.critical(f"About to launch pynisher job with {wall_time_in_s} time left at {time.ctime()}")
             safe_ensemble_script(time_left, iteration, return_predictions)
             if safe_ensemble_script.exit_status is pynisher.MemorylimitException:
                 # if ensemble script died because of memory error,

@@ -1,5 +1,4 @@
 import copy
-import io
 import json
 import logging.handlers
 import math
@@ -186,6 +185,8 @@ class BaseTask:
         self.resampling_strategy_args = resampling_strategy_args
 
         self.stop_logging_server = None  # type: Optional[multiprocessing.synchronize.Event]
+
+        self._dask_client = None
 
         self.search_space_updates = search_space_updates
         if search_space_updates is not None:
@@ -741,7 +742,16 @@ class BaseTask:
         if self.task_type is None:
             raise ValueError("Cannot interpret task type from the dataset")
 
-        self._create_dask_client()
+        # If no dask client was provided, we create one, so that we can
+        # start a ensemble process in parallel to smbo optimize
+        if (
+            self._dask_client is None and
+            (self.ensemble_size > 0 or self.n_jobs is not None and self.n_jobs > 1)
+        ):
+            self._create_dask_client()
+        else:
+            self._is_dask_client_internally_created = False
+
 
         # ============> Run dummy predictions
         num_run = 1
@@ -1150,15 +1160,12 @@ class BaseTask:
         return self.ensemble_.get_models_with_weights(self.models_)
 
     def show_models(self) -> str:
-        models_with_weights = self.get_models_with_weights()
-
-        with io.StringIO() as sio:
-            sio.write("[")
-            for weight, model in models_with_weights:
-                sio.write("Weight:%f:\nPipeline:%s)\n" % (weight, model))
-            sio.write("]")
-
-            return sio.getvalue()
+        df = []
+        for weight, model in self.get_models_with_weights():
+            representation = model.get_pipeline_representation()
+            representation.update({'Weight': weight})
+            df.append(representation)
+        return pd.DataFrame(df).to_markdown()
 
     def _print_debug_info_to_log(self) -> None:
         """
