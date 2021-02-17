@@ -189,12 +189,12 @@ class TrainerChoice(autoPyTorchChoice):
         self.check_requirements(X, y)
 
         # Setup the logger
-        self.logger = get_named_client_logger(
-            name=X['num_run'],
-            # Log to a user provided port else to the default logging port
-            port=X['logger_port'
-                   ] if 'logger_port' in X else logging.handlers.DEFAULT_TCP_LOGGING_PORT,
-        )
+        #self.logger = get_named_client_logger(
+        #    name=f"{X['num_run']}_{time.time()}",
+        #    # Log to a user provided port else to the default logging port
+        #    port=X['logger_port'
+        #           ] if 'logger_port' in X else logging.handlers.DEFAULT_TCP_LOGGING_PORT,
+        #)
 
         fit_function = self._fit
         if X['use_pynisher']:
@@ -296,7 +296,8 @@ class TrainerChoice(autoPyTorchChoice):
             train_loss, train_metrics = self.choice.train_epoch(
                 train_loader=X['train_data_loader'],
                 epoch=epoch,
-                logger=self.logger,
+                #logger=self.logger,
+                logger=None,
                 writer=writer,
             )
 
@@ -353,7 +354,7 @@ class TrainerChoice(autoPyTorchChoice):
             )
             self.save_model_for_ensemble()
 
-        self.logger.info(f"Finished training with {self.run_summary.repr_last_epoch()}")
+        #self.logger.info(f"Finished training with {self.run_summary.repr_last_epoch()}")
 
         # Tag as fitted
         self.fitted_ = True
@@ -390,7 +391,7 @@ class TrainerChoice(autoPyTorchChoice):
             torch.save(X['network'].state_dict(), best_path)
 
         if epochs_since_best > X['early_stopping']:
-            self.logger.debug(f" Early stopped model {X['num_run']} on epoch {self.run_summary.get_best_epoch()}")
+            #self.logger.debug(f" Early stopped model {X['num_run']} on epoch {self.run_summary.get_best_epoch()}")
             # We will stop the training. Load the last best performing weights
             X['network'].load_state_dict(torch.load(best_path))
 
