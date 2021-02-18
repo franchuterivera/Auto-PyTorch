@@ -62,7 +62,6 @@ if __name__ == '__main__':
     # Build and fit a classifier
     # ==========================
     api = TabularClassificationTask(
-        n_jobs=2,
         delete_tmp_folder_after_terminate=False,
         search_space_updates=get_search_space_updates()
     )

@@ -293,21 +293,17 @@ class TrainerChoice(autoPyTorchChoice):
             self.choice.on_epoch_start(X=X, epoch=epoch)
 
             # training
-            self.logger.debug(f"START train epoch = {epoch}")
             train_loss, train_metrics = self.choice.train_epoch(
                 train_loader=X['train_data_loader'],
                 epoch=epoch,
                 writer=writer,
             )
-            self.logger.debug(f"END train epoch = {epoch}")
 
             val_loss, val_metrics, test_loss, test_metrics = None, {}, None, {}
             if self.eval_valid_each_epoch(X):
-                self.logger.debug(f"START valid epoch {epoch}")
                 val_loss, val_metrics = self.choice.evaluate(X['val_data_loader'], epoch, writer)
                 if 'test_data_loader' in X and X['test_data_loader']:
                     test_loss, test_metrics = self.choice.evaluate(X['test_data_loader'], epoch, writer)
-                self.logger.debug(f"END valid epoch {epoch}")
 
             # Save training information
             self.run_summary.add_performance(
@@ -329,6 +325,8 @@ class TrainerChoice(autoPyTorchChoice):
 
             if self.choice.on_epoch_end(X=X, epoch=epoch):
                 break
+
+            self.logger.debug(self.run_summary.repr_last_epoch())
 
             # Reached max epoch on next iter, don't even go there
             if budget_tracker.is_max_epoch_reached(epoch + 1):
@@ -376,12 +374,10 @@ class TrainerChoice(autoPyTorchChoice):
         Returns:
             bool: If true, training should be stopped
         """
-        self.logger.debug(f"START early stopping ")
         assert self.run_summary is not None
 
         # Allow to disable early stopping
         if X['early_stopping'] is None or X['early_stopping'] < 0:
-            self.logger.debug(f"END early stopping ")
             return False
 
         # Store the best weights seen so far:
@@ -402,10 +398,8 @@ class TrainerChoice(autoPyTorchChoice):
 
             # Let the tempfile module clean the temp dir
             self.checkpoint_dir = None
-            self.logger.debug(f"END early stopping ")
             return True
 
-        self.logger.debug(f"END early stopping ")
         return False
 
     def eval_valid_each_epoch(self, X: Dict[str, Any]) -> bool:

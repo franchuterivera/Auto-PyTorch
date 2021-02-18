@@ -192,7 +192,6 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
             RunValue:
                 Contains information about the status/performance of config
         """
-        self.logger.critical(f"run_wrapper {run_info}")
         if self.budget_type is None:
             if run_info.budget != 0:
                 raise ValueError(
@@ -229,6 +228,7 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
         ):
             run_info = run_info._replace(cutoff=int(np.ceil(run_info.cutoff)))
 
+        self.logger.info("Starting to evaluate configuration %s" % run_info.config.config_id)
         return super().run_wrapper(run_info=run_info)
 
     def run(
@@ -272,7 +272,6 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
         else:
             num_run = config.config_id + self.initial_num_run
 
-        self.logger.critical(f"About to launch {num_run} with {pynisher_arguments}")
         self.logger.debug("Search space updates for {}: {}".format(num_run,
                                                                    self.search_space_updates))
         obj_kwargs = dict(
@@ -309,8 +308,6 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
                 'error': error_message
             }
             return StatusType.CRASHED, self.cost_for_crash, 0.0, additional_run_info
-
-        self.logger.debug(f"Finished tae eval for  {num_run}")
 
         if obj.exit_status in (pynisher.TimeoutException, pynisher.MemorylimitException):
             # Even if the pynisher thinks that a timeout or memout occured,

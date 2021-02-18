@@ -5,7 +5,7 @@
             "epochs": 50,
             "runtime": 3600,
             "torch_num_threads": 1,
-            "early_stopping": -1,
+            "early_stopping": 20,
             "use_tensorboard_logger": "False",
             "use_pynisher": "False",
             "metrics_during_training": "True"

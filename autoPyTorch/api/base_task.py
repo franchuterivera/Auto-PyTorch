@@ -552,8 +552,11 @@ class BaseTask:
 
     def _do_traditional_prediction(self, num_run: int, time_for_traditional: int) -> int:
 
+        # Mypy Checkings -- Traditional prediction is only called for search
+        # where the following objects are created
         assert self._metric is not None
         assert self._logger is not None
+        assert self._dask_client is not None
 
         self._logger.info("Starting to create dummy predictions.")
 
@@ -745,13 +748,11 @@ class BaseTask:
         # If no dask client was provided, we create one, so that we can
         # start a ensemble process in parallel to smbo optimize
         if (
-            self._dask_client is None and
-            (self.ensemble_size > 0 or self.n_jobs is not None and self.n_jobs > 1)
+            self._dask_client is None and (self.ensemble_size > 0 or self.n_jobs is not None and self.n_jobs > 1)
         ):
             self._create_dask_client()
         else:
             self._is_dask_client_internally_created = False
-
 
         # ============> Run dummy predictions
         num_run = 1

@@ -468,7 +468,6 @@ class AbstractEvaluator(object):
             Y_valid_pred: np.ndarray,
             Y_test_pred: np.ndarray
     ) -> Tuple[Optional[float], Dict]:
-        self.logger.debug(f"Finished and outputing results for {self.num_run}")
         # Abort if self.Y_optimization is None
         # self.Y_optimization can be None if we use partial-cv, then,
         # obviously no output should be saved.
