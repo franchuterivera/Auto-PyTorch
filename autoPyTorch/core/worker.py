@@ -18,7 +18,7 @@ class AutoNetWorker(Worker):
             X_train, Y_train, X_valid, Y_valid, dataset_info, budget_type, max_budget,
             shutdownables, use_pynisher, *args, **kwargs):
         """Initialize the worker.
-        
+
         Arguments:
             pipeline {Pipeline} -- The ML pipeline to evaluate
             pipeline_config {dict} -- The configuration of the pipeline
@@ -54,7 +54,7 @@ class AutoNetWorker(Worker):
 
 
         super().__init__(*args, **kwargs)
-    
+
     # OVERRIDE
     def compute(self, config, budget, working_directory, config_id, **kwargs):
 
@@ -95,35 +95,35 @@ class AutoNetWorker(Worker):
         # that is not really elegant but we can want to achieve some kind of feedback
         network_name = [v for k, v in config.items() if k.endswith('network')] or "None"
 
-        self.autonet_logger.info("Training " + str(network_name) + " with budget " + str(budget) + " resulted in optimize-metric-loss: " + str(loss) + " took " + str((time.time()-start_time)) + " seconds")
+        self.autonet_logger.info("Training " + str(network_name) + " with budget " + str(budget) +  " config: " + str(config) + " config_id: " + str(config_id) + " resulted in optimize-metric-loss: " + str(loss) + " took " + str((time.time()-start_time)) + " seconds info:"+ str(info))
 
         return  result
-    
+
     def optimize_pipeline(self, config, config_id, budget, optimize_start_time):
         """Fit the pipeline using the sampled hyperparameter configuration.
-        
+
         Arguments:
             config {dict} -- The sampled hyperparameter configuration.
             config_id {tuple} -- An ID for the configuration. Assigned by BOHB.
             budget {float} -- The budget to evaluate the hyperparameter configuration.
             optimize_start_time {float} -- The time when optimization started.
-        
+
         Returns:
             dict -- The result of fitting the pipeline.
         """
         try:
             self.autonet_logger.info("Fit optimization pipeline")
-            return self.pipeline.fit_pipeline(hyperparameter_config=config, pipeline_config=self.pipeline_config, 
-                                            X_train=self.X_train, Y_train=self.Y_train, X_valid=self.X_valid, Y_valid=self.Y_valid, 
+            return self.pipeline.fit_pipeline(hyperparameter_config=config, pipeline_config=self.pipeline_config,
+                                            X_train=self.X_train, Y_train=self.Y_train, X_valid=self.X_valid, Y_valid=self.Y_valid,
                                             budget=budget, budget_type=self.budget_type, max_budget=self.max_budget, optimize_start_time=optimize_start_time,
                                             refit=False, rescore=False, hyperparameter_config_id=config_id, dataset_info=self.dataset_info)
         except Exception as e:
-            if 'use_tensorboard_logger' in self.pipeline_config and self.pipeline_config['use_tensorboard_logger']:            
+            if 'use_tensorboard_logger' in self.pipeline_config and self.pipeline_config['use_tensorboard_logger']:
                 import tensorboard_logger as tl
                 tl.log_value('Exceptions/' + str(e), budget, int(time.time()))
             self.autonet_logger.info(str(e))
             raise e
-    
+
     @Pyro4.expose
     @Pyro4.oneway
     def shutdown(self):
