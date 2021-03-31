@@ -62,8 +62,8 @@ def test_tabular_classification(openml_id, resampling_strategy, backend):
         X_test=X_test, y_test=y_test,
         optimize_metric='accuracy',
         total_walltime_limit=150,
-        func_eval_time_limit=50,
-        traditional_per_total_budget=0
+        func_eval_time_limit_secs=50,
+        enable_traditional_pipeline=False,
     )
 
     # Internal dataset has expected settings
@@ -91,7 +91,7 @@ def test_tabular_classification(openml_id, resampling_strategy, backend):
         '.autoPyTorch/ensemble_read_preds.pkl',
         '.autoPyTorch/start_time_1',
         '.autoPyTorch/ensemble_history.json',
-        '.autoPyTorch/ensemble_read_scores.pkl',
+        '.autoPyTorch/ensemble_read_losses.pkl',
         '.autoPyTorch/true_targets_ensemble.npy',
     ]
     for expected_file in expected_files:
@@ -230,8 +230,8 @@ def test_tabular_regression(openml_name, resampling_strategy, backend):
         X_test=X_test, y_test=y_test,
         optimize_metric='r2',
         total_walltime_limit=50,
-        func_eval_time_limit=10,
-        traditional_per_total_budget=0
+        func_eval_time_limit_secs=10,
+        enable_traditional_pipeline=False,
     )
 
     # Internal dataset has expected settings
@@ -259,7 +259,7 @@ def test_tabular_regression(openml_name, resampling_strategy, backend):
         '.autoPyTorch/ensemble_read_preds.pkl',
         '.autoPyTorch/start_time_1',
         '.autoPyTorch/ensemble_history.json',
-        '.autoPyTorch/ensemble_read_scores.pkl',
+        '.autoPyTorch/ensemble_read_losses.pkl',
         '.autoPyTorch/true_targets_ensemble.npy',
     ]
     for expected_file in expected_files:
@@ -268,7 +268,7 @@ def test_tabular_regression(openml_name, resampling_strategy, backend):
     # Check that smac was able to find proper models
     succesful_runs = [run_value.status for run_value in estimator.run_history.data.values(
     ) if 'SUCCESS' in str(run_value.status)]
-    assert len(succesful_runs) > 1, [(k, v) for k, v in estimator.run_history.data.items()]
+    assert len(succesful_runs) >= 1, [(k, v) for k, v in estimator.run_history.data.items()]
 
     # Search for an existing run key in disc. A individual model might have
     # a timeout and hence was not written to disc
@@ -390,7 +390,7 @@ def test_tabular_input_support(openml_id, backend):
             X_test=X_test, y_test=y_test,
             optimize_metric='accuracy',
             total_walltime_limit=150,
-            func_eval_time_limit=50,
-            traditional_per_total_budget=0,
+            func_eval_time_limit_secs=50,
+            enable_traditional_pipeline=False,
             load_models=False,
         )

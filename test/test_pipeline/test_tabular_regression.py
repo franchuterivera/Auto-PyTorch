@@ -115,7 +115,7 @@ class TestTabularRegression:
 
         # we should be able to get a decent score on this dummy data
         r2_score = metrics.r2(y, prediction)
-        assert r2_score >= 0.5
+        assert r2_score >= 0.5, f"Pipeline:{pipeline} Config:{config} FitDict: {fit_dictionary_tabular_dummy}"
 
     def test_pipeline_predict(self, fit_dictionary_tabular):
         """This test makes sure that the pipeline is able to predict
@@ -188,7 +188,7 @@ class TestTabularRegression:
         """Makes sure that when a key is removed from X, correct error is outputted"""
         pipeline = TabularRegressionPipeline(
             dataset_properties=fit_dictionary_tabular['dataset_properties'])
-        for key in ['num_run', 'device', 'split_id', 'use_pynisher', 'torch_num_threads', 'dataset_properties']:
+        for key in ['num_run', 'device', 'split_id', 'torch_num_threads', 'dataset_properties']:
             fit_dictionary_tabular_copy = fit_dictionary_tabular.copy()
             fit_dictionary_tabular_copy.pop(key)
             with pytest.raises(ValueError, match=r"To fit .+?, expected fit dictionary to have"):

@@ -12,8 +12,6 @@ from ConfigSpace.hyperparameters import (
 
 import numpy as np
 
-import pynisher
-
 import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
@@ -139,14 +137,25 @@ class TrainerChoice(autoPyTorchChoice):
                 if default_ in available_trainers:
                     default = default_
                     break
-
-        trainer = CategoricalHyperparameter(
-            '__choice__',
-            list(available_trainers.keys()),
-            default_value=default
-        )
+        updates = self._get_search_space_updates()
+        if '__choice__' in updates.keys():
+            choice_hyperparameter = updates['__choice__']
+            if not set(choice_hyperparameter.value_range).issubset(available_trainers):
+                raise ValueError("Expected given update for {} to have "
+                                 "choices in {} got {}".format(self.__class__.__name__,
+                                                               available_trainers,
+                                                               choice_hyperparameter.value_range))
+            trainer = CategoricalHyperparameter('__choice__',
+                                                choice_hyperparameter.value_range,
+                                                default_value=choice_hyperparameter.default_value)
+        else:
+            trainer = CategoricalHyperparameter(
+                '__choice__',
+                list(available_trainers.keys()),
+                default_value=default
+            )
         cs.add_hyperparameter(trainer)
-        for name in available_trainers:
+        for name in trainer.choices:
             updates = self._get_search_space_updates(prefix=name)
             config_space = available_trainers[name].get_hyperparameter_search_space(dataset_properties,  # type:ignore
                                                                                     **updates)
@@ -196,37 +205,16 @@ class TrainerChoice(autoPyTorchChoice):
                    ] if 'logger_port' in X else logging.handlers.DEFAULT_TCP_LOGGING_PORT,
         )
 
-        fit_function = self._fit
-        if X['use_pynisher']:
-            wall_time_in_s = X['runtime'] if 'runtime' in X else None
-            memory_limit = X['cpu_memory_limit'] if 'cpu_memory_limit' in X else None
-            fit_function = pynisher.enforce_limits(
-                wall_time_in_s=wall_time_in_s,
-                mem_in_mb=memory_limit,
-                logger=self.logger
-            )(self._fit)
-
         # Call the actual fit function.
-        state_dict = fit_function(
+        self._fit(
             X=X,
             y=y,
             **kwargs
         )
 
-        if X['use_pynisher']:
-            # Normally the X[network] is a pointer to the object, so at the
-            # end, when we train using X, the pipeline network is updated for free
-            # If we do multiprocessing (because of pynisher) we have to update
-            # X[network] manually. we do so in a way that every pipeline component
-            # can see this new network -- via an update, not overwrite of the pointer
-            state_dict = state_dict.result
-            X['network'].load_state_dict(state_dict)
-
-        # TODO: when have the optimizer code, the pynisher object might have failed
-        # We should process this function as Failure if so trough fit_function.exit_status
         return cast(autoPyTorchComponent, self.choice)
 
-    def _fit(self, X: Dict[str, Any], y: Any = None, **kwargs: Any) -> torch.nn.Module:
+    def _fit(self, X: Dict[str, Any], y: Any = None, **kwargs: Any) -> 'TrainerChoice':
         """
         Fits a component by using an input dictionary with pre-requisites
 
@@ -359,7 +347,7 @@ class TrainerChoice(autoPyTorchChoice):
         # Tag as fitted
         self.fitted_ = True
 
-        return X['network'].state_dict()
+        return self
 
     def early_stop_handler(self, X: Dict[str, Any]) -> bool:
         """
@@ -443,10 +431,6 @@ class TrainerChoice(autoPyTorchChoice):
         if 'backend' not in X:
             raise ValueError('Need a backend to provide the working directory, '
                              "yet 'backend' was not found in the fit dictionary")
-
-        # For resource allocation, we need to know if pynisher is enabled
-        if 'use_pynisher' not in X:
-            raise ValueError('To fit a Trainer, expected fit dictionary to have use_pynisher')
 
         # Whether we should evaluate metrics during training or no
         if 'metrics_during_training' not in X:

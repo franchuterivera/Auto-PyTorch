@@ -27,27 +27,36 @@ class TabularClassificationTask(BaseTask):
     """
     Tabular Classification API to the pipelines.
     Args:
-        seed (int): seed to be used for reproducibility.
-        n_jobs (int), (default=1): number of consecutive processes to spawn.
-        logging_config (Optional[Dict]): specifies configuration
-            for logging, if None, it is loaded from the logging.yaml
-        ensemble_size (int), (default=50): Number of models added to the ensemble built by
+        seed (int):
+            seed to be used for reproducibility.
+        n_jobs (int), (default=1):
+            number of consecutive processes to spawn.
+        logging_config (Optional[Dict]):
+            specifies configuration for logging, if None, it is loaded from the logging.yaml
+        ensemble_size (int), (default=50):
+            Number of models added to the ensemble built by
             Ensemble selection from libraries of models.
             Models are drawn with replacement.
-        ensemble_nbest (int), (default=50): only consider the ensemble_nbest
+        ensemble_nbest (int), (default=50):
+            only consider the ensemble_nbest
             models to build the ensemble
-        max_models_on_disc (int), (default=50): maximum number of models saved to disc.
+        max_models_on_disc (int), (default=50):
+            maximum number of models saved to disc.
             Also, controls the size of the ensemble as any additional models will be deleted.
             Must be greater than or equal to 1.
-        temporary_directory (str): folder to store configuration output and log file
-        output_directory (str): folder to store predictions for optional test set
-        delete_tmp_folder_after_terminate (bool): determines whether to delete the temporary directory,
-            when finished
-        include_components (Optional[Dict]): If None, all possible components are used.
-            Otherwise specifies set of components to use.
-        exclude_components (Optional[Dict]): If None, all possible components are used.
-            Otherwise specifies set of components not to use. Incompatible with include
-            components
+        temporary_directory (str):
+            folder to store configuration output and log file
+        output_directory (str):
+            folder to store predictions for optional test set
+        delete_tmp_folder_after_terminate (bool):
+            determines whether to delete the temporary directory, when finished
+        include_components (Optional[Dict]):
+            If None, all possible components are used. Otherwise
+            specifies set of components to use.
+        exclude_components (Optional[Dict]):
+            If None, all possible components are used. Otherwise
+            specifies set of components not to use. Incompatible
+            with include components
     """
     def __init__(
         self,
@@ -113,8 +122,8 @@ class TabularClassificationTask(BaseTask):
         budget_type: Optional[str] = None,
         budget: Optional[float] = None,
         total_walltime_limit: int = 100,
-        func_eval_time_limit: int = 60,
-        traditional_per_total_budget: float = 0.1,
+        func_eval_time_limit_secs: Optional[int] = None,
+        enable_traditional_pipeline: bool = True,
         memory_limit: Optional[int] = 4096,
         smac_scenario_args: Optional[Dict[str, Any]] = None,
         get_smac_object_callback: Optional[Callable] = None,
@@ -147,16 +156,24 @@ class TabularClassificationTask(BaseTask):
                 in seconds for the search of appropriate models.
                 By increasing this value, autopytorch has a higher
                 chance of finding better models.
-            func_eval_time_limit (int), (default=60): Time limit
+            func_eval_time_limit_secs (int), (default=None): Time limit
                 for a single call to the machine learning model.
                 Model fitting will be terminated if the machine
                 learning algorithm runs over the time limit. Set
                 this value high enough so that typical machine
                 learning algorithms can be fit on the training
                 data.
-            traditional_per_total_budget (float), (default=0.1):
-                Percent of total walltime to be allocated for
-                running traditional classifiers.
+                When set to None, this time will automatically be set to
+                total_walltime_limit // 2 to allow enough time to fit
+                at least 2 individual machine learning algorithms.
+                Set to np.inf in case no time limit is desired.
+            enable_traditional_pipeline (bool), (default=True):
+                We fit traditional machine learning algorithms
+                (LightGBM, CatBoost, RandomForest, ExtraTrees, KNN, SVM)
+                before building PyTorch Neural Networks. You can disable this
+                feature by turning this flag to False. All machine learning
+                algorithms that are fitted during search() are considered for
+                ensemble building.
             memory_limit (Optional[int]), (default=4096): Memory
                 limit in MB for the machine learning algorithm. autopytorch
                 will stop fitting the machine learning algorithm if it tries
@@ -219,8 +236,8 @@ class TabularClassificationTask(BaseTask):
             budget_type=budget_type,
             budget=budget,
             total_walltime_limit=total_walltime_limit,
-            func_eval_time_limit=func_eval_time_limit,
-            traditional_per_total_budget=traditional_per_total_budget,
+            func_eval_time_limit_secs=func_eval_time_limit_secs,
+            enable_traditional_pipeline=enable_traditional_pipeline,
             memory_limit=memory_limit,
             smac_scenario_args=smac_scenario_args,
             get_smac_object_callback=get_smac_object_callback,

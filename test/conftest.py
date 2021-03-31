@@ -259,7 +259,9 @@ def get_tabular_data(task):
         y = y.iloc[0:200]
         y = (y - y.mean()) / y.std()
         validator = TabularInputValidator(is_classification=False).fit(X.copy(), y.copy())
-
+    elif task == 'iris':
+        X, y = fetch_openml("iris", return_X_y=True, as_frame=True)
+        validator = TabularInputValidator(is_classification=True).fit(X.copy(), y.copy())
     else:
         raise ValueError("Unsupported task {}".format(task))
 
@@ -276,7 +278,6 @@ def get_fit_dictionary(X, y, validator, backend):
     info = datamanager.get_required_dataset_info()
 
     dataset_properties = datamanager.get_dataset_properties(get_dataset_requirements(info))
-
     fit_dictionary = {
         'X_train': datamanager.train_tensors[0],
         'y_train': datamanager.train_tensors[1],
@@ -291,7 +292,6 @@ def get_fit_dictionary(X, y, validator, backend):
         'early_stopping': 10,
         'working_dir': '/tmp',
         'use_tensorboard_logger': True,
-        'use_pynisher': False,
         'metrics_during_training': True,
         'split_id': 0,
         'backend': backend,
