@@ -209,10 +209,18 @@ class TraditionalTabularClassificationPipeline(ClassifierMixin, BasePipeline):
         Returns:
             Dict: contains the pipeline representation in a short format
         """
+        print(f"In get_pipeline_representation START")
         estimator_name = 'TraditionalTabularClassification'
+        try:
+            print(f"trying the class name")
+            class_name = self.steps[0][1].choice.model.__class__.__name__
+            print(f"trying the class name succeded {class_name}")
+        except:
+            pass
         if self.steps[0][1].choice is not None:
             estimator_name = cast(str,
                                   self.steps[0][1].choice.model.get_properties()['shortname'])
+        print(f"In get_pipeline_representation END")
         return {
             'Preprocessing': 'None',
             'Estimator': estimator_name,

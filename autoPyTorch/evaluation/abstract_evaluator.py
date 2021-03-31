@@ -106,7 +106,15 @@ class MyTraditionalTabularClassificationPipeline(BaseEstimator):
         return None
 
     def get_pipeline_representation(self) -> Dict[str, str]:
-        return self.pipeline.get_pipeline_representation()
+        print(f"Started to get pipeline representation")
+        print(f"going to print vars")
+        try:
+            print(f"{vars(self)}")
+        except Exception as e:
+            pass
+        r = self.pipeline.get_pipeline_representation()
+        print(f"finished to get pipeline representation")
+        return r
 
     @staticmethod
     def get_default_pipeline_options() -> Dict[str, Any]:
@@ -408,6 +416,8 @@ class AbstractEvaluator(object):
                                            init_params=self._init_params,
                                            search_space_updates=self.search_space_updates)
         elif isinstance(self.configuration, str):
+            self.logger.debug(f"self.dataset_properties={self.dataset_properties.keys()}")
+            self.logger.debug(f"self.dataset_properties={self.dataset_properties}")
             pipeline = self.pipeline_class(config=self.configuration,
                                            dataset_properties=self.dataset_properties,
                                            random_state=np.random.RandomState(self.seed),

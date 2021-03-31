@@ -64,6 +64,7 @@ def _pipeline_predict(pipeline: BasePipeline,
                       batch_size: int,
                       logger: PicklableClientLogger,
                       task: int) -> np.ndarray:
+    print(f"Starting to predict for {np.shape(X)}")
     @typing.no_type_check
     def send_warnings_to_log(
             message, category, filename, lineno, file=None, line=None):
@@ -94,6 +95,7 @@ def _pipeline_predict(pipeline: BasePipeline,
             "Prediction shape for model %s is %s while X_.shape is %s",
             pipeline, str(prediction.shape), str(X_.shape)
         )
+    print(f"End prediction for predict for {np.shape(X)}")
     return prediction
 
 
@@ -285,6 +287,7 @@ class BaseTask:
         Returns:
             PicklableClientLogger
         """
+        print(f"called _get_logger for {name}")
         logger_name = 'AutoPyTorch:%s:%d' % (name, self.seed)
 
         # Setup the configuration for the logger
@@ -416,19 +419,27 @@ class BaseTask:
         Returns:
             None
         """
+        print("started calling load models with self.models={self.models_} and self.cv_models_={self.cv_models_}")
         if self.resampling_strategy is None:
             raise ValueError("Resampling strategy is needed to determine what models to load")
+        print(f"before backend load ensemble")
         self.ensemble_ = self._backend.load_ensemble(self.seed)
+        print(f"after backend load ensemble")
 
         # If no ensemble is loaded, try to get the best performing model
         if not self.ensemble_:
             self.ensemble_ = self._load_best_individual_model()
 
         if self.ensemble_:
+            print(f"Before self.ensemble_.get_selected_model_identifiers")
             identifiers = self.ensemble_.get_selected_model_identifiers()
+            print(f"after self.ensemble_.get_selected_model_identifiers")
             self.models_ = self._backend.load_models_by_identifiers(identifiers)
+            print(f"after self._backend.load_models_by_identifiers")
             if isinstance(self.resampling_strategy, CrossValTypes):
+                print(f"before self._backend.load_cv_models_by_identifiers")
                 self.cv_models_ = self._backend.load_cv_models_by_identifiers(identifiers)
+                print(f"after self._backend.load_cv_models_by_identifiers")
 
             if isinstance(self.resampling_strategy, CrossValTypes):
                 if len(self.cv_models_) == 0:
@@ -445,6 +456,7 @@ class BaseTask:
         else:
             self.models_ = {}
 
+        print(f"Return from load mdoels like at the end")
         return True
 
     def _load_best_individual_model(self) -> SingleBest:
@@ -851,7 +863,7 @@ class BaseTask:
             )
             try:
                 self.run_history, self.trajectory, budget_type = \
-                    _proc_smac.run_smbo()
+                    copy.deepcopy(_proc_smac.run_smbo())
                 trajectory_filename = os.path.join(
                     self._backend.get_smac_output_directory_for_run(self.seed),
                     'trajectory.json')
@@ -1146,19 +1158,29 @@ class BaseTask:
         pass
 
     def get_models_with_weights(self) -> List:
+        print(f"get_models_with_weights start")
         if self.models_ is None or len(self.models_) == 0 or \
                 self.ensemble_ is None:
+            print(f"in get_models_with_weights going to call load models")
             self._load_models()
+            print(f"after in get_models_with_weights going to call load models")
 
         assert self.ensemble_ is not None
-        return self.ensemble_.get_models_with_weights(self.models_)
+        print(f"before self.ensemble_.get_models_with_weights")
+        what = self.ensemble_.get_models_with_weights(self.models_)
+        print(f"get_models_with_weights end")
+        return what
 
     def show_models(self) -> str:
+        print("show models start")
         df = []
         for weight, model in self.get_models_with_weights():
+            print(f"weight->>{weight}")
+            print(f"model->{copy.deepcopy(model)}")
             representation = model.get_pipeline_representation()
             representation.update({'Weight': weight})
             df.append(representation)
+        print(f"Show models end")
         return pd.DataFrame(df).to_markdown()
 
     def _print_debug_info_to_log(self) -> None:
