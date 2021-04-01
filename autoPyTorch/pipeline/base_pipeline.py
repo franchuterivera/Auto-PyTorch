@@ -21,7 +21,10 @@ from autoPyTorch.pipeline.create_searchspace_util import (
     get_match_array
 )
 from autoPyTorch.utils.common import FitRequirement
-from autoPyTorch.utils.hyperparameter_search_space_update import HyperparameterSearchSpaceUpdates
+from autoPyTorch.utils.hyperparameter_search_space_update import (
+    HyperparameterSearchSpaceUpdate,
+    HyperparameterSearchSpaceUpdates,
+)
 
 
 class BasePipeline(Pipeline):
@@ -53,15 +56,15 @@ class BasePipeline(Pipeline):
     __metaclass__ = ABCMeta
 
     def __init__(
-            self,
-            config: Optional[Configuration] = None,
-            steps: Optional[List[Tuple[str, autoPyTorchChoice]]] = None,
-            dataset_properties: Optional[Dict[str, Any]] = None,
-            include: Optional[Dict[str, Any]] = None,
-            exclude: Optional[Dict[str, Any]] = None,
-            random_state: Optional[np.random.RandomState] = None,
-            init_params: Optional[Dict[str, Any]] = None,
-            search_space_updates: Optional[HyperparameterSearchSpaceUpdates] = None
+        self,
+        config: Optional[Configuration] = None,
+        steps: Optional[List[Tuple[str, autoPyTorchChoice]]] = None,
+        dataset_properties: Optional[Dict[str, Any]] = None,
+        include: Optional[Dict[str, Any]] = None,
+        exclude: Optional[Dict[str, Any]] = None,
+        random_state: Optional[np.random.RandomState] = None,
+        init_params: Optional[Dict[str, Any]] = None,
+        search_space_updates: Optional[HyperparameterSearchSpaceUpdates] = None
     ):
 
         self.init_params = init_params if init_params is not None else {}
@@ -186,9 +189,9 @@ class BasePipeline(Pipeline):
         return self.named_steps['network'].predict(loader)
 
     def set_hyperparameters(
-            self,
-            configuration: Configuration,
-            init_params: Optional[Dict] = None
+        self,
+        configuration: Configuration,
+        init_params: Optional[Dict] = None
     ) -> 'Pipeline':
         """Method to set the hyperparameter configuration of the pipeline.
 
@@ -303,12 +306,12 @@ class BasePipeline(Pipeline):
         return string
 
     def _get_base_search_space(
-            self,
-            cs: ConfigurationSpace,
-            dataset_properties: Dict[str, Any],
-            include: Optional[Dict[str, Any]],
-            exclude: Optional[Dict[str, Any]],
-            pipeline: List[Tuple[str, autoPyTorchChoice]]
+        self,
+        cs: ConfigurationSpace,
+        dataset_properties: Dict[str, Any],
+        include: Optional[Dict[str, Any]],
+        exclude: Optional[Dict[str, Any]],
+        pipeline: List[Tuple[str, autoPyTorchChoice]]
     ) -> ConfigurationSpace:
         if include is None:
             if self.include is None:
@@ -393,6 +396,7 @@ class BasePipeline(Pipeline):
     def _check_search_space_updates(self, include: Optional[Dict[str, Any]],
                                     exclude: Optional[Dict[str, Any]]) -> None:
         assert self.search_space_updates is not None
+        remove_updates: List[HyperparameterSearchSpaceUpdate] = list()
         for update in self.search_space_updates.updates:
             if update.node_name not in self.named_steps.keys():
                 raise ValueError("Unknown node name. Expected update node name to be in {} "
@@ -425,23 +429,31 @@ class BasePipeline(Pipeline):
                             if choice in exclude[update.node_name]:
                                 raise ValueError("Found {} in exclude".format(choice))
                         if choice not in components.keys():
-                            raise ValueError("Unknown hyperparameter for choice {}. "
-                                             "Expected update hyperparameter "
-                                             "to be in {} got {}".format(node.__class__.__name__,
-                                                                         components.keys(), choice))
+                            warnings.warn("Unknown hyperparameter for choice {}. "
+                                          "Expected update hyperparameter "
+                                          "to be in {} got {}. "
+                                          "This update {} will be removed".format(node.__class__.__name__,
+                                                                                  components.keys(), choice, update),
+                                          UserWarning)
+                            remove_updates.append(update)
+                            continue
                 # check if the component whose hyperparameter
                 # needs to be updated is in components of the
                 # choice module
                 elif split_hyperparameter[0] not in components.keys():
-                    raise ValueError("Unknown hyperparameter for choice {}. "
-                                     "Expected update hyperparameter "
-                                     "to be in {} got {}".format(node.__class__.__name__,
-                                                                 components.keys(), split_hyperparameter[0]))
+                    warnings.warn("Unknown hyperparameter for choice {}. "
+                                  "Expected update hyperparameter "
+                                  "to be in {} got {}. "
+                                  "This update {} will be removed".format(node.__class__.__name__,
+                                                                          components.keys(), split_hyperparameter[0],
+                                                                          update), UserWarning)
+                    remove_updates.append(update)
+                    continue
                 else:
                     # check if hyperparameter is in the search space of the component
                     component = components[split_hyperparameter[0]]
-                    if split_hyperparameter[1] not in component. \
-                            get_hyperparameter_search_space(dataset_properties=self.dataset_properties):
+                    if split_hyperparameter[1] not in component.get_hyperparameter_search_space(
+                            dataset_properties=self.dataset_properties):
                         # Check if update hyperparameter is in names of
                         # hyperparameters of the search space
                         # Example 'num_units' in 'num_units_1', 'num_units_2'
@@ -449,14 +461,16 @@ class BasePipeline(Pipeline):
                                 component.get_hyperparameter_search_space(
                                     dataset_properties=self.dataset_properties).get_hyperparameter_names()]):
                             continue
-                        raise ValueError("Unknown hyperparameter for component {}. "
-                                         "Expected update hyperparameter "
-                                         "to be in {} got {}".format(node.__class__.__name__,
-                                                                     component.
-                                                                     get_hyperparameter_search_space(
-                                                                         dataset_properties=self.dataset_properties).
-                                                                     get_hyperparameter_names(),
-                                                                     split_hyperparameter[1]))
+                        warnings.warn("Unknown hyperparameter for component {}. "
+                                      "Expected update hyperparameter "
+                                      "to be in {} got {}."
+                                      "This update {} will be removed".
+                                      format(node.__class__.__name__,
+                                             component.get_hyperparameter_search_space(
+                                                 dataset_properties=self.dataset_properties).get_hyperparameter_names(),
+                                             split_hyperparameter[1], update), UserWarning)
+                        remove_updates.append(update)
+                        continue
             else:
                 if update.hyperparameter not in node.get_hyperparameter_search_space(
                         dataset_properties=self.dataset_properties):
@@ -464,13 +478,21 @@ class BasePipeline(Pipeline):
                             node.get_hyperparameter_search_space(
                                 dataset_properties=self.dataset_properties).get_hyperparameter_names()]):
                         continue
-                    raise ValueError("Unknown hyperparameter for component {}. "
-                                     "Expected update hyperparameter "
-                                     "to be in {} got {}".format(node.__class__.__name__,
-                                                                 node.
-                                                                 get_hyperparameter_search_space(
-                                                                     dataset_properties=self.dataset_properties).
-                                                                 get_hyperparameter_names(), update.hyperparameter))
+                    warnings.warn("Unknown hyperparameter for component {}. "
+                                  "Expected update hyperparameter "
+                                  "to be in {} got {}. "
+                                  "This update {} will be removed".
+                                  format(node.__class__.__name__,
+                                         node.get_hyperparameter_search_space(
+                                             dataset_properties=self.dataset_properties).get_hyperparameter_names(),
+                                         update.hyperparameter,
+                                         update), UserWarning)
+                    remove_updates.append(update)
+                    continue
+
+        # remove problematic updates
+        for update in remove_updates:
+            self.search_space_updates.updates.remove(update)
 
     def _get_pipeline_steps(self, dataset_properties: Optional[Dict[str, Any]]
                             ) -> List[Tuple[str, autoPyTorchChoice]]:
@@ -492,7 +514,7 @@ class BasePipeline(Pipeline):
         Returns:
             List[NamedTuple]: List of FitRequirements
         """
-        fit_requirements = list()  # List[FitRequirement]
+        fit_requirements = list()  # type: List[FitRequirement]
         for name, step in self.steps:
             step_requirements = step.get_fit_requirements()
             if step_requirements:
