@@ -236,8 +236,8 @@ class TestTabularClassification:
         # Then fitting a optimizer should fail if no network:
         assert 'optimizer' in pipeline.named_steps.keys()
         with pytest.raises(
-                ValueError,
-                match=r"To fit .+?, expected fit dictionary to have 'network' but got .*"
+            ValueError,
+            match=r"To fit .+?, expected fit dictionary to have 'network' but got .*"
         ):
             pipeline.named_steps['optimizer'].fit({'dataset_properties': {}}, None)
 
@@ -248,8 +248,8 @@ class TestTabularClassification:
         # Then fitting a optimizer should fail if no network:
         assert 'lr_scheduler' in pipeline.named_steps.keys()
         with pytest.raises(
-                ValueError,
-                match=r"To fit .+?, expected fit dictionary to have 'optimizer' but got .*"
+            ValueError,
+            match=r"To fit .+?, expected fit dictionary to have 'optimizer' but got .*"
         ):
             pipeline.named_steps['lr_scheduler'].fit({'dataset_properties': {}}, None)
 
@@ -300,8 +300,17 @@ class TestTabularClassification:
                                               search_space_updates=error_search_space_updates)
         except Exception as e:
             assert isinstance(e, ValueError)
-            assert re.match(r'Unknown hyperparameter for component .*?\. Expected update '
-                            r'hyperparameter to be in \[.*?\] got .+', e.args[0])
+            assert re.match(r'Unknown node name\. Expected update '
+                            r'node name to be in .*? got .+', e.args[0])
+
+    def test_warning_search_space_updates(self, fit_dictionary_tabular, warning_search_space_updates):
+        dataset_properties = {'numerical_columns': [1], 'categorical_columns': [2],
+                              'task_type': 'tabular_classification'}
+
+        with pytest.warns(UserWarning, match=r'Unknown hyperparameter for component .*?\. Expected update '
+                                             r'hyperparameter to be in \[.*?\] got .+'):
+            _ = TabularClassificationPipeline(dataset_properties=dataset_properties,
+                                              search_space_updates=warning_search_space_updates)
 
     def test_set_range_search_space_updates(self, fit_dictionary_tabular):
         dataset_properties = {'numerical_columns': [1], 'categorical_columns': [2],
