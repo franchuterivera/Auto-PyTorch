@@ -309,8 +309,9 @@ class TestTabularClassification:
 
         with pytest.warns(UserWarning, match=r'Unknown hyperparameter for component .*?\. Expected update '
                                              r'hyperparameter to be in \[.*?\] got .+'):
-            _ = TabularClassificationPipeline(dataset_properties=dataset_properties,
-                                              search_space_updates=warning_search_space_updates)
+            pipeline = TabularClassificationPipeline(dataset_properties=dataset_properties,
+                                                     search_space_updates=warning_search_space_updates)
+        assert len(pipeline.search_space_updates.updates) == 0
 
     def test_set_range_search_space_updates(self, fit_dictionary_tabular):
         dataset_properties = {'numerical_columns': [1], 'categorical_columns': [2],

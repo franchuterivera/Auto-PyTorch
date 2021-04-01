@@ -21,7 +21,10 @@ from autoPyTorch.pipeline.create_searchspace_util import (
     get_match_array
 )
 from autoPyTorch.utils.common import FitRequirement
-from autoPyTorch.utils.hyperparameter_search_space_update import HyperparameterSearchSpaceUpdates
+from autoPyTorch.utils.hyperparameter_search_space_update import (
+    HyperparameterSearchSpaceUpdate,
+    HyperparameterSearchSpaceUpdates,
+)
 
 
 class BasePipeline(Pipeline):
@@ -393,6 +396,7 @@ class BasePipeline(Pipeline):
     def _check_search_space_updates(self, include: Optional[Dict[str, Any]],
                                     exclude: Optional[Dict[str, Any]]) -> None:
         assert self.search_space_updates is not None
+        remove_updates: List[HyperparameterSearchSpaceUpdate] = list()
         for update in self.search_space_updates.updates:
             if update.node_name not in self.named_steps.keys():
                 raise ValueError("Unknown node name. Expected update node name to be in {} "
@@ -431,7 +435,7 @@ class BasePipeline(Pipeline):
                                           "This update {} will be removed".format(node.__class__.__name__,
                                                                                   components.keys(), choice, update),
                                           UserWarning)
-                            self.search_space_updates.updates.remove(update)
+                            remove_updates.append(update)
                             continue
                 # check if the component whose hyperparameter
                 # needs to be updated is in components of the
@@ -443,13 +447,13 @@ class BasePipeline(Pipeline):
                                   "This update {} will be removed".format(node.__class__.__name__,
                                                                           components.keys(), split_hyperparameter[0],
                                                                           update), UserWarning)
-                    self.search_space_updates.updates.remove(update)
+                    remove_updates.append(update)
                     continue
                 else:
                     # check if hyperparameter is in the search space of the component
                     component = components[split_hyperparameter[0]]
-                    if split_hyperparameter[1] not in \
-                            component.get_hyperparameter_search_space(dataset_properties=self.dataset_properties):
+                    if split_hyperparameter[1] not in component.get_hyperparameter_search_space(
+                            dataset_properties=self.dataset_properties):
                         # Check if update hyperparameter is in names of
                         # hyperparameters of the search space
                         # Example 'num_units' in 'num_units_1', 'num_units_2'
@@ -465,11 +469,11 @@ class BasePipeline(Pipeline):
                                              component.get_hyperparameter_search_space(
                                                  dataset_properties=self.dataset_properties).get_hyperparameter_names(),
                                              split_hyperparameter[1], update), UserWarning)
-                        self.search_space_updates.updates.remove(update)
+                        remove_updates.append(update)
                         continue
             else:
-                if update.hyperparameter not in \
-                        node.get_hyperparameter_search_space(dataset_properties=self.dataset_properties):
+                if update.hyperparameter not in node.get_hyperparameter_search_space(
+                        dataset_properties=self.dataset_properties):
                     if any([update.hyperparameter in name for name in
                             node.get_hyperparameter_search_space(
                                 dataset_properties=self.dataset_properties).get_hyperparameter_names()]):
@@ -483,8 +487,12 @@ class BasePipeline(Pipeline):
                                              dataset_properties=self.dataset_properties).get_hyperparameter_names(),
                                          update.hyperparameter,
                                          update), UserWarning)
-                    self.search_space_updates.updates.remove(update)
+                    remove_updates.append(update)
                     continue
+
+        # remove problematic updates
+        for update in remove_updates:
+            self.search_space_updates.updates.remove(update)
 
     def _get_pipeline_steps(self, dataset_properties: Optional[Dict[str, Any]]
                             ) -> List[Tuple[str, autoPyTorchChoice]]:
