@@ -718,7 +718,7 @@ def test_ensemble_builder_nbest_remembered(fit_ensemble, ensemble_backend, dask_
         max_iterations=None,
     )
 
-    manager.build_ensemble(dask_client, unit_test=True)
+    manager.build_ensemble(dask_client, unit_test=True, pynisher_context='fork')
     future = manager.futures[0]
     dask.distributed.wait([future])  # wait for the ensemble process to finish
     assert future.result() == ([], 5, None, None), vars(future.result())

@@ -700,10 +700,6 @@ class EnsembleBuilder(object):
                                         "less ensemble_nbest: %d" % self.ensemble_nbest)
                     return [], self.ensemble_nbest, None, None
             else:
-                if safe_ensemble_script.result is None:
-                    # If pynisher fails, result will be None. Return the
-                    # object to debug
-                    return safe_ensemble_script
                 return safe_ensemble_script.result
 
         return [], self.ensemble_nbest, None, None
