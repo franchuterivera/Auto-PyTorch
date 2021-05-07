@@ -7,7 +7,7 @@ import unittest.mock
 
 import dask.distributed
 
-from flaky import flaky
+import flaky
 
 import numpy as np
 
@@ -36,6 +36,50 @@ from ensemble_utils import BackendMock, compare_read_preds, EnsembleBuilderMemMo
 # -----------------------------------------------------------------------------------------------
 #                                   Ensemble Builder Testing
 # -----------------------------------------------------------------------------------------------
+@flaky.flaky(max_runs=3)
+@unittest.mock.patch('autoPyTorch.ensemble.ensemble_builder.EnsembleBuilder.fit_ensemble')
+def test_ensemble_builder_nbest_remembered(fit_ensemble, ensemble_backend, dask_client):
+    """
+    Makes sure ensemble builder returns the size of the ensemble that pynisher allowed
+    This way, we can remember it and not waste more time trying big ensemble sizes
+    """
+
+    fit_ensemble.side_effect = MemoryError
+
+    manager = EnsembleBuilderManager(
+        start_time=time.time(),
+        time_left_for_ensembles=1000,
+        backend=ensemble_backend,
+        dataset_name='Test',
+        output_type=MULTICLASS,
+        task_type=TABULAR_CLASSIFICATION,
+        metrics=[accuracy],
+        opt_metric='accuracy',
+        ensemble_size=50,
+        ensemble_nbest=10,
+        max_models_on_disc=None,
+        seed=0,
+        precision=32,
+        read_at_most=np.inf,
+        ensemble_memory_limit=1000,
+        random_state=0,
+        max_iterations=None,
+    )
+
+    manager.build_ensemble(dask_client, unit_test=True, pynisher_context='fork')
+    future = manager.futures[0]
+    dask.distributed.wait([future])  # wait for the ensemble process to finish
+    assert future.result() == ([], 5, None, None), vars(future.result())
+    file_path = os.path.join(ensemble_backend.internals_directory, 'ensemble_read_preds.pkl')
+    assert not os.path.exists(file_path)
+
+    manager.build_ensemble(dask_client, unit_test=True)
+
+    future = manager.futures[0]
+    dask.distributed.wait([future])  # wait for the ensemble process to finish
+    assert not os.path.exists(file_path)
+    assert future.result() == ([], 2, None, None)
+
 @pytest.fixture(scope="function")
 def ensemble_backend(request):
     """
@@ -687,50 +731,6 @@ def test_ensemble_builder_process_realrun(dask_client, ensemble_backend):
     assert 'test_mockmetric' in history[0]
     assert history[0]['test_mockmetric'] == 0.9
 
-
-@flaky(max_runs=3)
-@unittest.mock.patch('autoPyTorch.ensemble.ensemble_builder.EnsembleBuilder.fit_ensemble')
-def test_ensemble_builder_nbest_remembered(fit_ensemble, ensemble_backend, dask_client):
-    """
-    Makes sure ensemble builder returns the size of the ensemble that pynisher allowed
-    This way, we can remember it and not waste more time trying big ensemble sizes
-    """
-
-    fit_ensemble.side_effect = MemoryError
-
-    manager = EnsembleBuilderManager(
-        start_time=time.time(),
-        time_left_for_ensembles=1000,
-        backend=ensemble_backend,
-        dataset_name='Test',
-        output_type=MULTICLASS,
-        task_type=TABULAR_CLASSIFICATION,
-        metrics=[accuracy],
-        opt_metric='accuracy',
-        ensemble_size=50,
-        ensemble_nbest=10,
-        max_models_on_disc=None,
-        seed=0,
-        precision=32,
-        read_at_most=np.inf,
-        ensemble_memory_limit=1000,
-        random_state=0,
-        max_iterations=None,
-    )
-
-    manager.build_ensemble(dask_client, unit_test=True, pynisher_context='fork')
-    future = manager.futures[0]
-    dask.distributed.wait([future])  # wait for the ensemble process to finish
-    assert future.result() == ([], 5, None, None), vars(future.result())
-    file_path = os.path.join(ensemble_backend.internals_directory, 'ensemble_read_preds.pkl')
-    assert not os.path.exists(file_path)
-
-    manager.build_ensemble(dask_client, unit_test=True)
-
-    future = manager.futures[0]
-    dask.distributed.wait([future])  # wait for the ensemble process to finish
-    assert not os.path.exists(file_path)
-    assert future.result() == ([], 2, None, None)
 
 
 # -----------------------------------------------------------------------------------------------
